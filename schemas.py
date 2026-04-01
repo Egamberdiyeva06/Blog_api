@@ -1,17 +1,34 @@
 from pydantic import BaseModel, Field
 
-class PostCreate(BaseModel):
+
+class UserBase(BaseModel):
+    first_name: str = Field(max_length=100)
+    last_name: str = Field(max_length=100)
+
+
+class UserCreate(UserBase):
+    pass
+
+
+class UserOut(UserBase):
+    id: int
+
+
+
+class PostBase(BaseModel):
     title: str = Field(max_length=100)
     content: str
+    user_id: int
 
-class PostUpdate(BaseModel):
-    title: str | None = Field(default=None, max_length=100)
-    content: str | None = None
+class PostCreate(PostBase):
+    pass
 
-class PostOut(BaseModel):
+
+class PostUpdate(PostBase):
+    pass
+
+class PostOut(PostBase):
     id: int = Field(ge=1)
-    title: str = Field(max_length=100)
-    content: str = Field(max_length=300)
 
     class Config:
         from_attributes = True
