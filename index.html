@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog App - Mukammal</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+            resize: vertical;
+        }
+
+        button {
+            padding: 10px 18px;
+            margin-top: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: 0.3s;
+        }
+
+        .btn-add { background: #4CAF50; color: white; }
+        .btn-add:hover { background: #45a049; }
+
+        .btn-delete { background: #e74c3c; color: white; }
+        .btn-delete:hover { background: #c0392b; }
+
+        .btn-edit { background: #3498db; color: white; }
+        .btn-edit:hover { background: #2980b9; }
+
+        .btn-search { background: #9b59b6; color: white; }
+        .btn-search:hover { background: #8e44ad; }
+
+        .post { margin-top: 15px; }
+        .post h3 { margin: 0 0 5px; color: #333; }
+        .post p { margin: 5px 0 10px; color: #555; }
+
+        .flex { display: flex; gap: 10px; flex-wrap: wrap; }
+
+        @media(max-width: 600px) {
+            .flex { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <h1>📚 Blog App - Mukammal</h1>
+
+    <div class="card">
+        <h3>Yangi maqola qo‘shish / Update</h3>
+        <input type="text" id="title" placeholder="Sarlavha">
+        <textarea id="content" rows="4" placeholder="Matn"></textarea>
+        <button class="btn-add" onclick="createPost()">➕ Qo‘shish / ✏️ Update</button>
+    </div>
+
+    <div class="card">
+        <h3>ID bo‘yicha qidirish</h3>
+        <div class="flex">
+            <input type="number" id="searchId" placeholder="ID kiriting">
+            <button class="btn-search" onclick="getPostById()">🔍 Qidirish</button>
+            <button class="btn-search" onclick="getPosts()">📄 Hammasi</button>
+        </div>
+    </div>
+
+    <div id="posts"></div>
+
+</div>
+
+<script>
+const API = "http://127.0.0.1:8000/api/posts";
+let editingId = null;
+
+async function getPosts() {
+    try {
+        const res = await fetch(API);
+        const data = await res.json();
+        renderPosts(data);
+    } catch(e) {
+        console.error(e);
+        alert('Serverga ulanishda xato');
+    }
+}
+
+function renderPosts(data) {
+    const postsDiv = document.getElementById("posts");
+    postsDiv.innerHTML = "";
+
+    if(data.length === 0) {
+        postsDiv.innerHTML = '<p style="text-align:center; color:#888;">Hali maqola yo‘q</p>';
+        return;
+    }
+
+    data.forEach(post => {
+        postsDiv.innerHTML += `
+            <div class="card post">
+                <h3>${post.title}</h3>
+                <p>${post.content}</p>
+                <div class="flex">
+                    <button class="btn-edit" onclick="editPost(${post.id}, \`${post.title}\`, \`${post.content}\`)">✏️ Edit</button>
+                    <button class="btn-delete" onclick="deletePost(${post.id})">🗑 O‘chirish</button>
+                </div>
+            </div>
+        `;
+    });
+}
+
+async function getPostById() {
+    const id = document.getElementById("searchId").value;
+    if (!id) return alert("ID kiriting");
+
+    try {
+        const res = await fetch(`${API}/${id}`);
+        if (!res.ok) return alert("Topilmadi");
+        const post = await res.json();
+        renderPosts([post]);
+    } catch(e) {
+        console.error(e);
+        alert('Serverga ulanishda xato');
+    }
+}
+
+async function createPost() {
+    const title = document.getElementById("title").value.trim();
+    const content = document.getElementById("content").value.trim();
+
+    if (!title || !content) return alert("Iltimos, barcha maydonlarni to‘ldiring");
+
+    try {
+        if (editingId) {
+            await fetch(`${API}/${editingId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title, content })
+            });
+            editingId = null;
+        } else {
+            await fetch(API, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title, content })
+            });
+        }
+        document.getElementById("title").value = "";
+        document.getElementById("content").value = "";
+        await getPosts();
+    } catch(e) {
+        console.error(e);
+        alert('Serverga ulanishda xato');
+    }
+}
+
+function editPost(id, title, content) {
+    document.getElementById("title").value = title;
+    document.getElementById("content").value = content;
+    editingId = id;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function deletePost(id) {
+    if(!confirm('Rostdan o‘chirmoqchimisiz?')) return;
+    try {
+        await fetch(`${API}/${id}`, { method: "DELETE" });
+        await getPosts();
+    } catch(e) {
+        console.error(e);
+        alert('Serverga ulanishda xato');
+    }
+}
+
+getPosts();
+</script>
+
+</body>
