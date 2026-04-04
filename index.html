@@ -1,210 +1,172 @@
 <!DOCTYPE html>
-<html lang="uz">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blog App - Mukammal</title>
-
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-
-    <style>
-        body {
-            font-family: 'Roboto', sans-serif;
-            background: #f0f2f5;
-            margin: 0;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 900px;
-            margin: auto;
-        }
-
-        h1 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 20px;
-        }
-
-        .card {
-            background: #fff;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-
-        input, textarea {
-            width: 100%;
-            padding: 12px;
-            margin-top: 10px;
-            border-radius: 8px;
-            border: 1px solid #ccc;
-            font-size: 14px;
-            resize: vertical;
-        }
-
-        button {
-            padding: 10px 18px;
-            margin-top: 12px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: 0.3s;
-        }
-
-        .btn-add { background: #4CAF50; color: white; }
-        .btn-add:hover { background: #45a049; }
-
-        .btn-delete { background: #e74c3c; color: white; }
-        .btn-delete:hover { background: #c0392b; }
-
-        .btn-edit { background: #3498db; color: white; }
-        .btn-edit:hover { background: #2980b9; }
-
-        .btn-search { background: #9b59b6; color: white; }
-        .btn-search:hover { background: #8e44ad; }
-
-        .post { margin-top: 15px; }
-        .post h3 { margin: 0 0 5px; color: #333; }
-        .post p { margin: 5px 0 10px; color: #555; }
-
-        .flex { display: flex; gap: 10px; flex-wrap: wrap; }
-
-        @media(max-width: 600px) {
-            .flex { flex-direction: column; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blog App</title>
+<!-- Bootstrap 5 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+body { background-color: #f8f9fa; padding: 20px; }
+h1 { margin-bottom: 30px; }
+.card { margin-bottom: 20px; }
+.post { border-top: 1px solid #dee2e6; padding-top: 10px; margin-top: 10px; }
+</style>
 </head>
 <body>
 
 <div class="container">
+    <h1 class="text-center">📝 Blog App</h1>
 
-    <h1>📚 Blog App - Mukammal</h1>
+    <div class="row">
+        <!-- Create User -->
+        <div class="col-md-6">
+            <div class="card p-3">
+                <h4>Create User</h4>
+                <input type="text" id="first_name" class="form-control mb-2" placeholder="First Name">
+                <input type="text" id="last_name" class="form-control mb-2" placeholder="Last Name">
+                <button class="btn btn-primary w-100" onclick="createUser()">Add User</button>
+            </div>
+        </div>
 
-    <div class="card">
-        <h3>Yangi maqola qo‘shish / Update</h3>
-        <input type="text" id="title" placeholder="Sarlavha">
-        <textarea id="content" rows="4" placeholder="Matn"></textarea>
-        <button class="btn-add" onclick="createPost()">➕ Qo‘shish / ✏️ Update</button>
-    </div>
-
-    <div class="card">
-        <h3>ID bo‘yicha qidirish</h3>
-        <div class="flex">
-            <input type="number" id="searchId" placeholder="ID kiriting">
-            <button class="btn-search" onclick="getPostById()">🔍 Qidirish</button>
-            <button class="btn-search" onclick="getPosts()">📄 Hammasi</button>
+        <!-- Create Post -->
+        <div class="col-md-6">
+            <div class="card p-3">
+                <h4>Create Post</h4>
+                <input type="text" id="post_title" class="form-control mb-2" placeholder="Title">
+                <textarea id="post_content" class="form-control mb-2" placeholder="Content"></textarea>
+                <input type="number" id="post_user_id" class="form-control mb-2" placeholder="User ID">
+                <button class="btn btn-success w-100" onclick="createPost()">Add Post</button>
+            </div>
         </div>
     </div>
 
-    <div id="posts"></div>
+    <hr>
 
+    <!-- Users List -->
+    <h3>Users</h3>
+    <div id="users" class="row"></div>
+
+    <hr>
+
+    <!-- Posts List -->
+    <h3>Posts</h3>
+    <div id="posts" class="row"></div>
 </div>
 
+<!-- Bootstrap 5 JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-const API = "http://127.0.0.1:8000/api/posts";
-let editingId = null;
+const API_BASE = "http://127.0.0.1:8000/api";
 
-async function getPosts() {
-    try {
-        const res = await fetch(API);
-        const data = await res.json();
-        renderPosts(data);
-    } catch(e) {
-        console.error(e);
-        alert('Serverga ulanishda xato');
-    }
-}
+// ===== Users =====
+async function loadUsers() {
+    const res = await fetch(`${API_BASE}/users/`);
+    const users = await res.json();
+    const usersDiv = document.getElementById("users");
+    usersDiv.innerHTML = "";
 
-function renderPosts(data) {
-    const postsDiv = document.getElementById("posts");
-    postsDiv.innerHTML = "";
+    users.forEach(user => {
+        const div = document.createElement("div");
+        div.className = "col-md-4";
+        let postsHtml = "";
+        if (user.posts.length > 0) {
+            postsHtml = "<ul class='list-group list-group-flush'>";
+            user.posts.forEach(post => {
+                postsHtml += `<li class='list-group-item d-flex justify-content-between align-items-center'>
+                                ${post.title}
+                                <button class='btn btn-sm btn-danger' onclick="deletePost(${post.id})">Delete</button>
+                              </li>`;
+            });
+            postsHtml += "</ul>";
+        }
 
-    if(data.length === 0) {
-        postsDiv.innerHTML = '<p style="text-align:center; color:#888;">Hali maqola yo‘q</p>';
-        return;
-    }
-
-    data.forEach(post => {
-        postsDiv.innerHTML += `
-            <div class="card post">
-                <h3>${post.title}</h3>
-                <p>${post.content}</p>
-                <div class="flex">
-                    <button class="btn-edit" onclick="editPost(${post.id}, \`${post.title}\`, \`${post.content}\`)">✏️ Edit</button>
-                    <button class="btn-delete" onclick="deletePost(${post.id})">🗑 O‘chirish</button>
-                </div>
+        div.innerHTML = `
+            <div class="card p-3">
+                <h5>${user.first_name} ${user.last_name} (ID: ${user.id})</h5>
+                ${postsHtml}
             </div>
         `;
+        usersDiv.appendChild(div);
     });
 }
 
-async function getPostById() {
-    const id = document.getElementById("searchId").value;
-    if (!id) return alert("ID kiriting");
+async function createUser() {
+    const first_name = document.getElementById("first_name").value;
+    const last_name = document.getElementById("last_name").value;
 
-    try {
-        const res = await fetch(`${API}/${id}`);
-        if (!res.ok) return alert("Topilmadi");
-        const post = await res.json();
-        renderPosts([post]);
-    } catch(e) {
-        console.error(e);
-        alert('Serverga ulanishda xato');
-    }
+    if (!first_name || !last_name) return alert("Fill all fields");
+
+    await fetch(`${API_BASE}/users/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ first_name, last_name })
+    });
+
+    document.getElementById("first_name").value = "";
+    document.getElementById("last_name").value = "";
+    loadUsers();
+}
+
+// ===== Posts =====
+async function loadPosts() {
+    const res = await fetch(`${API_BASE}/posts/`);
+    const posts = await res.json();
+    const postsDiv = document.getElementById("posts");
+    postsDiv.innerHTML = "";
+
+    posts.forEach(post => {
+        const div = document.createElement("div");
+        div.className = "col-md-4";
+        div.innerHTML = `
+            <div class="card p-3 post">
+                <h5>${post.title}</h5>
+                <p>${post.content}</p>
+                <small>User ID: ${post.user_id}</small>
+                <br>
+                <button class="btn btn-sm btn-danger mt-2" onclick="deletePost(${post.id})">Delete</button>
+            </div>
+        `;
+        postsDiv.appendChild(div);
+    });
 }
 
 async function createPost() {
-    const title = document.getElementById("title").value.trim();
-    const content = document.getElementById("content").value.trim();
+    const title = document.getElementById("post_title").value;
+    const content = document.getElementById("post_content").value;
+    const user_id = parseInt(document.getElementById("post_user_id").value);
 
-    if (!title || !content) return alert("Iltimos, barcha maydonlarni to‘ldiring");
+    if (!title || !content || !user_id) return alert("Fill all fields");
 
-    try {
-        if (editingId) {
-            await fetch(`${API}/${editingId}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ title, content })
-            });
-            editingId = null;
-        } else {
-            await fetch(API, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ title, content })
-            });
-        }
-        document.getElementById("title").value = "";
-        document.getElementById("content").value = "";
-        await getPosts();
-    } catch(e) {
-        console.error(e);
-        alert('Serverga ulanishda xato');
+    const res = await fetch(`${API_BASE}/posts/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, content, user_id })
+    });
+
+    if (!res.ok) {
+        const err = await res.json();
+        return alert(err.detail);
     }
+
+    document.getElementById("post_title").value = "";
+    document.getElementById("post_content").value = "";
+    document.getElementById("post_user_id").value = "";
+    loadPosts();
+    loadUsers();
 }
 
-function editPost(id, title, content) {
-    document.getElementById("title").value = title;
-    document.getElementById("content").value = content;
-    editingId = id;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+async function deletePost(post_id) {
+    await fetch(`${API_BASE}/posts/${post_id}`, { method: "DELETE" });
+    loadPosts();
+    loadUsers();
 }
 
-async function deletePost(id) {
-    if(!confirm('Rostdan o‘chirmoqchimisiz?')) return;
-    try {
-        await fetch(`${API}/${id}`, { method: "DELETE" });
-        await getPosts();
-    } catch(e) {
-        console.error(e);
-        alert('Serverga ulanishda xato');
-    }
+// Load data on page load
+window.onload = () => {
+    loadUsers();
+    loadPosts();
 }
-
-getPosts();
 </script>
-
 </body>
+</html>

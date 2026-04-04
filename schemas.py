@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field
+from typing import List
 
 
 class UserBase(BaseModel):
@@ -12,6 +13,7 @@ class UserCreate(UserBase):
 
 class UserOut(UserBase):
     id: int
+    posts: List[PostOut] = []
 
 
 

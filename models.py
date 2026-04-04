@@ -11,7 +11,7 @@ class User(Base):
     first_name: Mapped[str] = mapped_column(String(length=50))
     last_name: Mapped[str] = mapped_column(String(length=50))
 
-    posts: Mapped["Post"] = relationship(back_populates="user", cascade="all, delete-orphan")
+    posts: Mapped[list["Post"]] = relationship("Post", back_populates="user", cascade="all, delete-orphan", lazy='selectin')
 
 
 
