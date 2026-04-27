@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Blog Platform | Zamonaviy Blog</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); }
+        .post-card:hover { transform: translateY(-5px); transition: all 0.3s ease; }
+    </style>
+</head>
+<body class="bg-[#f8fafc] text-slate-900">
+
+    <nav class="sticky top-0 z-50 glass border-b border-slate-200">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <div class="bg-blue-600 text-white p-2 rounded-lg">
+                    <i class="fa-solid fa-microchip text-xl"></i>
+                </div>
+                <span class="text-xl font-bold tracking-tight">AI<span class="text-blue-600">Blog</span></span>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <div id="guest-zone" class="flex gap-3">
+                    <button onclick="loginModal()" class="text-slate-600 font-medium hover:text-blue-600 transition">Kirish</button>
+                    <button class="bg-blue-600 text-white px-5 py-2 rounded-full font-semibold hover:bg-blue-700 shadow-lg shadow-blue-200 transition">Boshlash</button>
+                </div>
+                <div id="user-zone" class="hidden flex items-center gap-4">
+                    <span id="user-name" class="font-semibold text-slate-700 underline underline-offset-4 decoration-blue-500"></span>
+                    <button onclick="logout()" class="bg-rose-50 text-rose-600 p-2 rounded-full hover:bg-rose-100 transition">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-6 py-8">
+        <div class="flex flex-col lg:flex-row gap-8">
+            
+            <aside class="lg:w-1/4 space-y-6">
+                <div id="post-box" class="hidden bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+                    <h3 class="text-lg font-bold mb-4">Nima yangiliklar?</h3>
+                    <input type="text" id="postTitle" placeholder="Sarlavha..." class="w-full mb-3 px-4 py-2 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-blue-500">
+                    <textarea id="postContent" placeholder="Fikringizni ulashing..." class="w-full h-32 px-4 py-2 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-blue-500 mb-3"></textarea>
+                    <button onclick="createPost()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 shadow-md">Postni yuborish</button>
+                </div>
+
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+                    <h3 class="font-bold text-slate-800 mb-4">Trenddagilar</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-3">
+                            <span class="text-blue-600 font-bold">#1</span>
+                            <span class="text-sm font-medium">FastAPI darslari</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-blue-600 font-bold">#2</span>
+                            <span class="text-sm font-medium">Sun'iy intellekt 2026</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <main class="lg:w-2/4 space-y-6">
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input type="text" id="searchInput" oninput="loadPosts()" placeholder="Mavzular bo'yicha qidirish..." class="w-full pl-12 pr-4 py-4 rounded-2xl bg-white border-none shadow-sm focus:ring-2 focus:ring-blue-500 transition">
+                </div>
+
+                <div id="posts-feed" class="space-y-6">
+                    </div>
+            </main>
+
+            <aside class="lg:w-1/4 hidden lg:block">
+                <div class="bg-gradient-to-br from-blue-600 to-indigo-700 p-6 rounded-3xl text-white shadow-xl">
+                    <h3 class="text-lg font-bold mb-2">Premium hamjamiyat</h3>
+                    <p class="text-blue-100 text-sm mb-4">Eksklyuziv maqolalar va mentorlik yordamiga ega bo'ling.</p>
+                    <button class="w-full bg-white text-blue-600 py-2 rounded-xl font-bold text-sm">A'zo bo'lish</button>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = ""; // Bitta serverda bo'lgani uchun bo'sh bo'lishi mumkin
+        let token = localStorage.getItem("token");
+
+        window.onload = () => {
+            checkAuth();
+            loadPosts();
+        };
+
+        function checkAuth() {
+            if (token) {
+                document.getElementById('guest-zone').classList.add('hidden');
+                document.getElementById('user-zone').classList.remove('hidden');
+                document.getElementById('post-box').classList.remove('hidden');
+                document.getElementById('user-name').innerText = "Mening Profilim";
+            }
+        }
+
+        async function loadPosts() {
+            const search = document.getElementById('searchInput').value;
+            try {
+                const res = await axios.get(`/api/posts/?search=${search}`);
+                const feed = document.getElementById('posts-feed');
+                feed.innerHTML = '';
+
+                res.data.forEach(post => {
+                    feed.innerHTML += `
+                        <article class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 post-card">
+                            <div class="flex justify-between items-start mb-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
+                                        ${post.id}
+                                    </div>
+                                    <div>
+                                        <h4 class="font-bold text-slate-800">${post.title}</h4>
+                                        <p class="text-xs text-slate-400">ID: #${post.user_id}</p>
+                                    </div>
+                                </div>
+                                <button class="text-slate-300 hover:text-slate-600"><i class="fa-solid fa-ellipsis"></i></button>
+                            </div>
+                            <p class="text-slate-600 leading-relaxed mb-6">${post.content}</p>
+                            <div class="flex items-center gap-6">
+                                <button onclick="toggleLike(${post.id})" class="flex items-center gap-2 group transition">
+                                    <div class="w-9 h-9 rounded-full bg-rose-50 flex items-center justify-center text-rose-500 group-hover:bg-rose-500 group-hover:text-white transition">
+                                        <i class="fa-solid fa-heart"></i>
+                                    </div>
+                                    <span class="text-sm font-bold text-slate-500">${post.likes_count}</span>
+                                </button>
+                                <button class="flex items-center gap-2 group transition">
+                                    <div class="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition">
+                                        <i class="fa-solid fa-comment"></i>
+                                    </div>
+                                    <span class="text-sm font-bold text-slate-500">${post.comments_count}</span>
+                                </button>
+                            </div>
+                        </article>
+                    `;
+                });
+            } catch (err) { console.error(err); }
+        }
+
+        async function createPost() {
+            const title = document.getElementById('postTitle').value;
+            const content = document.getElementById('postContent').value;
+
+            if(!title || !content) return Swal.fire('Xato', 'Maydonlarni toldiring', 'warning');
+
+            try {
+                await axios.post('/api/posts/', { title, content }, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                Swal.fire({ title: 'Tayyor!', text: 'Maqolangiz chop etildi', icon: 'success', timer: 1500 });
+                document.getElementById('postTitle').value = '';
+                document.getElementById('postContent').value = '';
+                loadPosts();
+            } catch (err) {
+                Swal.fire('Xato', 'Login muddatiz tugagan bo\'lishi mumkin', 'error');
+            }
+        }
+
+        async function toggleLike(postId) {
+            if(!token) return Swal.fire('Kirish shart', 'Like bosish uchun login qiling', 'info');
+            try {
+                await axios.post(`/api/posts/${postId}/like`, {}, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                loadPosts();
+            } catch (err) { console.error(err); }
+        }
+
+        async function loginModal() {
+            const { value: formValues } = await Swal.fire({
+                title: 'Tizimga kirish',
+                html:
+                    '<input id="swal-input1" class="swal2-input" placeholder="Username">' +
+                    '<input id="swal-input2" type="password" class="swal2-input" placeholder="Password">',
+                focusConfirm: false,
+                confirmButtonText: 'Kirish',
+                showLoaderOnConfirm: true,
+                preConfirm: () => {
+                    return [
+                        document.getElementById('swal-input1').value,
+                        document.getElementById('swal-input2').value
+                    ]
+                }
+            });
+
+            if (formValues) {
+                const formData = new FormData();
+                formData.append('username', formValues[0]);
+                formData.append('password', formValues[1]);
+
+                try {
+                    const res = await axios.post('/api/users/login', formData);
+                    localStorage.setItem("token", res.data.access_token);
+                    token = res.data.access_token;
+                    location.reload();
+                } catch (err) {
+                    Swal.fire('Xatolik', 'Login yoki parol noto\'g\'ri', 'error');
+                }
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem("token");
+            location.reload();
+        }
+    </script>
+</body>
+</html>

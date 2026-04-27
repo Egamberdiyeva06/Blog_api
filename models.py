@@ -14,9 +14,9 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(String)
 
     posts: Mapped[list["Post"]] = relationship("Post", back_populates="user", cascade="all, delete-orphan", lazy='selectin')
-    comments: Mapped[list["Comment"]] = relationship("Comment", back_populates="user")
-    likes: Mapped[list["Like"]] = relationship("Like", back_populates="user")
-    liked_posts: Mapped[list['Post']] = relationship("Post", secondary='likes', viewonly=True)
+    comments: Mapped[list["Comment"]] = relationship("Comment", back_populates="user", lazy='selectin')
+    likes: Mapped[list["Like"]] = relationship("Like", back_populates="user", lazy='selectin')
+    liked_posts: Mapped[list['Post']] = relationship("Post", secondary='likes', viewonly=True, lazy='selectin')
 
 
 class Post(Base):
@@ -49,8 +49,8 @@ class Comment(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     post_id: Mapped[int] = mapped_column(ForeignKey("posts.id", ondelete="CASCADE"))
 
-    user: Mapped["User"] = relationship(back_populates='comments')
-    post: Mapped["Post"] = relationship(back_populates='comments')
+    user: Mapped["User"] = relationship(back_populates='comments', lazy='selectin')
+    post: Mapped["Post"] = relationship(back_populates='comments', lazy='selectin')
 
 
 class Like(Base):
@@ -60,7 +60,7 @@ class Like(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     post_id: Mapped[int] = mapped_column(ForeignKey("posts.id", ondelete="CASCADE"))
 
-    user: Mapped["User"] = relationship(back_populates="likes")
-    post: Mapped["Post"] = relationship(back_populates="likes")
+    user: Mapped["User"] = relationship(back_populates="likes", lazy='selectin')
+    post: Mapped["Post"] = relationship(back_populates="likes", lazy='selectin')
 
     __table_args__ = (UniqueConstraint("user_id", "post_id", name = "unique_user_post_like"),)
