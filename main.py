@@ -1,5 +1,6 @@
 import time
 
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from api import users_router, posts_router
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,11 +12,18 @@ from database import engine
 
 app = FastAPI()
 
-@app.on_event("startup")
-async def startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     print("Malumotlar bazasi jadvallar tekshirildi, yaratildi.")
+
+    yield
+
+    print("Dastur to'xtatilmoqda...")
+
+app = FastAPI(lifespan=lifespan)
+
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):

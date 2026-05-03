@@ -30,7 +30,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = await jwt.decode(token, security.SECRET_KEY, algorithms=[security.ALGORITHM])
+        payload = jwt.decode(token, security.SECRET_KEY, algorithms=[security.ALGORITHM])
         user_id: str = payload.get("sub")
         if user_id is None:
             raise credentials_exception
@@ -135,7 +135,8 @@ async def get_posts(db: Session = Depends(get_db), current_user: User = Depends(
     if search:
         query = query.where(Post.title.contains(search))
 
-    posts = await db.scalars(query).all()
+    result = await db.scalars(query)
+    posts = result.all()
     return posts
 
 

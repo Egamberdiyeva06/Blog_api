@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
 
 
@@ -22,8 +22,7 @@ class PostOut(PostBase):
     likes_count: int = 0
     comments_count: int = 0
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 
@@ -43,14 +42,11 @@ class UserOut(UserBase):
     comments: List[CommentOut] = []
     liked_posts: List[PostOut] = []
 
-    class Config:
-        from_attributes = True
-
+    model_config = ConfigDict(from_attributes=True)
 
 class Token(BaseModel):
     access_token: str
     token_type: str
-
 
 
 class CommentBase(BaseModel):
@@ -66,8 +62,7 @@ class CommentOut(CommentBase):
     user_id: int
     post_id: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 
